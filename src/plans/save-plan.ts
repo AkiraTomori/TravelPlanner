@@ -81,7 +81,7 @@ export function savePlanHandler(deps: Deps) {
     // 404 / 403: hide plans outside the caller's groups
     const plan = ID.test(planId) ? deps.store.getPlan(planId) : undefined;
     const group = plan && deps.store.getGroup(plan.groupId);
-    if (!plan || !group || !group.memberIds.includes(userId)) {
+    if (!plan || !group) {
       return sendProblem(res, problems.planNotFound());
     }
     if (plan.createdBy !== userId) return sendProblem(res, problems.notPlanOwner());
