@@ -87,7 +87,12 @@ Headers: `Idempotent-Replayed: true` when the body is a stored response replayed
   "cost": {
     "totalVnd": 1460000,
     "groupTotalVnd": 4000000,
-    "members": [{ "userId": "usr_linh", "spendVnd": 365000, "capVnd": 1000000 }]
+    "members": [
+      { "userId": "usr_an", "spendVnd": 365000, "capVnd": 1000000 },
+      { "userId": "usr_bao", "spendVnd": 365000, "capVnd": null },
+      { "userId": "usr_linh", "spendVnd": 365000, "capVnd": 1000000 },
+      { "userId": "usr_minh", "spendVnd": 365000, "capVnd": null }
+    ]
   }
 }
 ```
@@ -145,10 +150,11 @@ forecast arrive with the shared data). Clients must treat an unknown `code` as a
 ## Idempotency
 
 - Scope: `(caller userId, Idempotency-Key)`. Keys from different users never collide.
-- Same key, same `planId` and same body within 24 h → the stored response is returned unchanged
+- Same key, same `planId` and a **byte-identical** body within 24 h → the stored response is returned unchanged
   (same status, same body, including `sharedNow`), with header `Idempotent-Replayed: true`.
   Nothing is validated, saved or notified again.
-- Same key, different `planId` or body → `422 idempotency-key-reused`.
+- Same key, different `planId` or a body that differs in any byte (including key order or
+  whitespace) → `422 idempotency-key-reused`. Clients must resend the exact bytes they sent first.
 - Only `200` responses are stored. An error is not stored, so after fixing the cause the client may
   retry with the same key.
 - A **new** key on a plan already saved at `expectedVersion` → `200` with `sharedNow: false` and the

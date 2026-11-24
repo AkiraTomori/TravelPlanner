@@ -5,11 +5,11 @@ did the work. Lines marked `TODO(team)` are still waiting for that account.
 
 ## 2026-11-24 — repository hygiene before PA#2
 
-Tool: none.
-What went wrong: the initial commit 5fa5aea committed `.DS_Store` files (from `git add -A`) and
-saved the course AI-log template as `LOG.md`, not `AI-LOG.md`.
-Fix: removed both from the index, added `.gitignore`, and added two lines to `AGENTS.md`
-(stage files by name; course files keep their exact names).
+Tool: none for the mistake; Claude Code (Opus 5.5) for the fix.
+What went wrong: the initial commit 5fa5aea (by hand) committed `.DS_Store` files and saved the
+course AI-log template as `LOG.md`, not `AI-LOG.md`.
+Fix (Claude Code, in b476181): removed both from the index, added `.gitignore`, and added two lines
+to `AGENTS.md` (stage files by name; course files keep their exact names).
 
 ## 2026-11-24 — PA#2 harness: checks, CI, rules file
 
