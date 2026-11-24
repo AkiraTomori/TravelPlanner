@@ -24,6 +24,8 @@ AI Travel Planner backend (CSC13114, 23KTPM1). `CLAUDE.md` imports this file; ke
 - Work on a branch, open a PR, merge with a merge commit after `checks` is green. A commit that changes
   a test does not also change the code it tests.
 - Stage files by name. Never `git add -A` / `git add .` (see 5fa5aea: `.DS_Store` was committed).
+- A PR meant to be red must fail at the step you intend: check the failing step in the run (the
+  first stub in PR #1 failed lint, not the contract tests; see AI-LOG.md).
 - Course files keep their exact names: the AI log is `AI-LOG.md` (5fa5aea committed it as `LOG.md`).
 
 ## Never

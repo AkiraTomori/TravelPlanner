@@ -1,7 +1,8 @@
 // Holds the code to docs/contract/save-plan.md. One describe block per contract section.
 import request from 'supertest';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { makeHarness } from '../fixtures.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createApp } from '../../src/app.js';
+import { makeHarness, tokens } from '../fixtures.js';
 
 type Harness = ReturnType<typeof makeHarness>;
 let h: Harness;
@@ -274,5 +275,34 @@ describe('Idempotency', () => {
     expect(res.status).toBe(200);
     expect(res.headers['idempotent-replayed']).toBeUndefined();
     expect(res.body.sharedNow).toBe(false);
+  });
+});
+
+describe('500 internal — unexpected failure', () => {
+  it('returns problem details and shares nothing', async () => {
+    const shared: unknown[] = [];
+    const app = createApp({
+      store: {
+        getPlan: () => {
+          throw new Error('database down');
+        },
+        putPlan: () => undefined,
+        getGroup: () => undefined,
+        getPlace: () => undefined,
+      },
+      notifier: { planShared: (...args) => shared.push(args) },
+      authenticate: (token) => tokens[token],
+      now: () => new Date('2026-11-28T02:00:00.000Z'),
+    });
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const res = await request(app)
+      .post('/plans/plan_weekend/save')
+      .set('Authorization', 'Bearer tok-linh')
+      .set('Idempotency-Key', KEY)
+      .set('Content-Type', 'application/json')
+      .send('{"expectedVersion":3}');
+    spy.mockRestore();
+    expectProblem(res, 500, '/problems/internal');
+    expect(shared).toEqual([]);
   });
 });
