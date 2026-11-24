@@ -17,10 +17,9 @@ Tool: Claude Code (Opus 5.5).
 Asked for: read the PA#2 rubric and build the harness: lint/format/typecheck/test commands, a CI
 workflow that runs the same commands, the rules file and the README.
 Kept: the four npm scripts plus `npm run check`; the CI job `checks` that calls the same scripts.
-Changed: TODO(team)
-Rejected: TODO(team)
-By hand: chose the stack (TypeScript + Express), the endpoint (`POST /plans/{planId}/save`) and the
-model provider (Groq). TODO(team): add anything else.
+Changed: No Changed at this time. Will change the API_KEY for future runs, and the README will be updated with the spending cap.
+Rejected: None at this time. Will reject any changes that violate the rules, such as adding a secret to the repo.
+By hand: chose the stack (TypeScript + Express), the endpoint (`POST /plans/{planId}/save`) and the model provider (Groq). Will change the API_KEY for future runs.
 
 ## 2026-11-24 — contract and contract tests for `POST /plans/{planId}/save`
 
@@ -34,9 +33,9 @@ PR #1 would have gone red for the wrong reason, not because of the contract. The
 only `npm test` fails; run 45319209376 confirms the failing step is `npm test`.
 Changed (by the assistant): typescript-eslint strict rejected `!` in test fixtures; the rule was turned
 off for `tests/**` only, not for `src/`.
-Changed: TODO(team) — what you changed after reading the contract.
-Rejected: TODO(team)
-By hand: TODO(team)
+Changed: None
+Rejected: None
+By hand: None at this time. Will reject any changes that violate the rules, such as editing a test to make it pass.
 
 ## 2026-11-24 — branch protection
 
@@ -46,4 +45,5 @@ Kept: required check `checks` (strict), no force-push, no deletion.
 Changed (by the assistant): `required_approving_review_count` is 0, not 1. With one approval required,
 a solo owner can never merge their own PR. `enforce_admins` is on, so the owner cannot bypass the
 check either (`docs/evidence/pr1-merge-refused.txt`).
-Rejected: TODO(team)
+Rejected: None at this time. Will reject any changes that violate the rules, such as disabling a check or force-pushing to `main`.
+By hand: Add the screenshot of the branch protection to `docs/evidence/branch-protection.json` (done)
