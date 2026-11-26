@@ -52,6 +52,13 @@ export const problems = {
     detail: `Current version is ${currentVersion}. Reload the plan and review it again.`,
     currentVersion,
   }),
+  bodyTooLarge: (limitBytes: number): Problem => ({
+    type: '/problems/body-too-large',
+    title: 'The request body is too large',
+    status: 413,
+    detail: `The body must be at most ${limitBytes} bytes. Send only {"expectedVersion": n}.`,
+    limitBytes,
+  }),
   unsupportedMediaType: (): Problem => ({
     type: '/problems/unsupported-media-type',
     title: 'Content-Type must be application/json',
