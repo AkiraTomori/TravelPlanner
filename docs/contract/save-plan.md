@@ -42,7 +42,7 @@ Idempotency-Key: <key>
 | `Content-Type`    | Required, `application/json`. Anything else is `415 unsupported-media-type`.          |
 | `Idempotency-Key` | Required. 8–128 chars, `[A-Za-z0-9_-]` (a UUID v4 is recommended). Kept for 24 hours. |
 
-Body (JSON object, no other fields allowed):
+Body (JSON object, no other fields allowed, at most 16 KB; larger is `413 body-too-large`):
 
 | Field             | Type    | Rule                                                                                   |
 | ----------------- | ------- | -------------------------------------------------------------------------------------- |
@@ -110,12 +110,13 @@ Every error is `application/problem+json` (RFC 9457) with `type`, `title`, `stat
 | 403    | `/problems/not-plan-owner`           | Caller is a member of the group but not `plan.createdBy`                                     | —                              |
 | 404    | `/problems/plan-not-found`           | No such plan, malformed `planId`, or caller is not a member of the plan's group              | —                              |
 | 409    | `/problems/version-conflict`         | `expectedVersion` ≠ the plan's current version (someone edited it after the client read it)  | `currentVersion: integer`      |
+| 413    | `/problems/body-too-large`           | Body is larger than 16 KB (16 384 bytes). Nothing is read or stored.                         | `limitBytes: integer`          |
 | 415    | `/problems/unsupported-media-type`   | `Content-Type` is not `application/json`                                                     | —                              |
 | 422    | `/problems/plan-invalid`             | The validator rejects the plan. Nothing is saved or shared.                                  | `violations: [Violation]`      |
 | 422    | `/problems/idempotency-key-reused`   | Same `Idempotency-Key` sent earlier by this user with a different `planId` or body           | —                              |
 | 500    | `/problems/internal`                 | Unexpected failure. Nothing is shared. Safe to retry with the same key.                      | —                              |
 
-Checks run in this order, and the first failure is returned: `415` → `401` → `400 idempotency-key-required`
+Checks run in this order, and the first failure is returned: `413` → `415` → `401` → `400 idempotency-key-required`
 → idempotency replay / `422 idempotency-key-reused` → `400 invalid-request` → `404` → `403` → `409` → `422 plan-invalid`.
 
 `Violation`:
@@ -198,6 +199,7 @@ The other types carry only the four standard members, for example:
 | `not-plan-owner`           | No                        | Hide the Save button for members who are not `plan.createdBy`.                 |
 | `plan-not-found`           | No                        | Show "plan not found"; do not reveal whether the id exists.                    |
 | `version-conflict`         | After reload              | Reload the plan, show it again, then Save with `currentVersion` and a new key. |
+| `body-too-large`           | No, not as sent           | A bug in the client: the only field is `expectedVersion`. Send just that.      |
 | `unsupported-media-type`   | After fixing              | Send `Content-Type: application/json`.                                         |
 | `plan-invalid`             | After the plan is changed | Show each `violations[]` entry at `stopIndex` / `userId`; nothing was shared.  |
 | `idempotency-key-reused`   | With a new key            | A bug in the client: a key was reused for a different plan or body.            |
