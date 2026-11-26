@@ -135,7 +135,7 @@ forecast arrive with the shared data). Clients must treat an unknown `code` as a
   "type": "/problems/plan-invalid",
   "title": "The plan does not pass validation",
   "status": 422,
-  "detail": "1 violation; the plan was not saved.",
+  "detail": "1 violation(s); the plan was not saved.",
   "violations": [
     {
       "code": "over-member-cap",
@@ -146,6 +146,62 @@ forecast arrive with the shared data). Clients must treat an unknown `code` as a
   ]
 }
 ```
+
+### Error bodies with extra members
+
+`title` is fixed per `type`; `detail` may change wording and is for display only.
+
+```json
+{
+  "type": "/problems/invalid-request",
+  "title": "The request body is not valid",
+  "status": 400,
+  "detail": "2 field error(s).",
+  "errors": [
+    { "field": "note", "message": "Unknown field." },
+    { "field": "expectedVersion", "message": "Must be an integer >= 1." }
+  ]
+}
+```
+
+`errors[].field` is a top-level body field name, or `"body"` when the body is not JSON or not an
+object (then it is the only entry).
+
+```json
+{
+  "type": "/problems/version-conflict",
+  "title": "The plan changed since you read it",
+  "status": 409,
+  "detail": "Current version is 4. Reload the plan and review it again.",
+  "currentVersion": 4
+}
+```
+
+The other types carry only the four standard members, for example:
+
+```json
+{
+  "type": "/problems/idempotency-key-reused",
+  "title": "Idempotency-Key was already used for a different request",
+  "status": 422,
+  "detail": "Use a new Idempotency-Key for a different plan or body."
+}
+```
+
+### What a client should do
+
+| `type`                     | Retry?                    | Client action                                                                  |
+| -------------------------- | ------------------------- | ------------------------------------------------------------------------------ |
+| `invalid-request`          | No, not as sent           | Fix the fields in `errors[]`, then retry (the same key is fine: not stored).   |
+| `idempotency-key-required` | After fixing              | Generate a key (UUID v4) once per Save press and keep it for that press.       |
+| `unauthenticated`          | After sign-in             | Send the user to sign in; retry with the same key.                             |
+| `not-plan-owner`           | No                        | Hide the Save button for members who are not `plan.createdBy`.                 |
+| `plan-not-found`           | No                        | Show "plan not found"; do not reveal whether the id exists.                    |
+| `version-conflict`         | After reload              | Reload the plan, show it again, then Save with `currentVersion` and a new key. |
+| `unsupported-media-type`   | After fixing              | Send `Content-Type: application/json`.                                         |
+| `plan-invalid`             | After the plan is changed | Show each `violations[]` entry at `stopIndex` / `userId`; nothing was shared.  |
+| `idempotency-key-reused`   | With a new key            | A bug in the client: a key was reused for a different plan or body.            |
+| `internal`                 | Yes                       | Retry with the **same** key and the same bytes, with backoff.                  |
 
 ## Idempotency
 
@@ -160,6 +216,22 @@ forecast arrive with the shared data). Clients must treat an unknown `code` as a
 - A **new** key on a plan already saved at `expectedVersion` → `200` with `sharedNow: false` and the
   original `savedAt`. The group is not notified again. This is what makes Save safe to repeat even
   when a client loses its key.
+
+### A full exchange
+
+```
+POST /plans/plan_weekend/save          Idempotency-Key: 6f1c…a9   {"expectedVersion":3}
+→ 200 sharedNow: true                  (plan shared, group notified once)
+
+POST /plans/plan_weekend/save          Idempotency-Key: 6f1c…a9   {"expectedVersion":3}
+→ 200 sharedNow: true, Idempotent-Replayed: true   (network retry: stored body, nothing sent)
+
+POST /plans/plan_weekend/save          Idempotency-Key: 6f1c…a9   {"expectedVersion": 3}
+→ 422 idempotency-key-reused           (same key, bytes differ: a space was added)
+
+POST /plans/plan_weekend/save          Idempotency-Key: b27e…40   {"expectedVersion":3}
+→ 200 sharedNow: false                 (new key, already saved: same savedAt, nothing sent)
+```
 
 ## Paging
 
