@@ -33,9 +33,6 @@ PR #1 would have gone red for the wrong reason, not because of the contract. The
 only `npm test` fails; run 45319209376 confirms the failing step is `npm test`.
 Changed (by the assistant): typescript-eslint strict rejected `!` in test fixtures; the rule was turned
 off for `tests/**` only, not for `src/`.
-Changed: None
-Rejected: None
-By hand: None at this time. Will reject any changes that violate the rules, such as editing a test to make it pass.
 
 ## 2026-11-24 — branch protection
 
@@ -56,3 +53,19 @@ tables unformatted. On PR #3, run 45322225150 went red at `npm run format:check`
 typecheck and test were skipped), so the PR could not merge.
 Fix (8715b5a): reformatted the tables so Prettier passes; run 45322367867 went green and PR #3
 merged. The gate checks our own docs, not only the assistant's code.
+
+## 2026-11-26 — secret scan, contract hardening (PR #6)
+
+Tool: Claude Code (Opus 5.5).
+Asked for: raise the self-assessment honestly: scan the history for secrets, make the contract
+complete enough for a stranger, and test every promise the contract makes.
+Kept: gitleaks over all refs with a positive control (`docs/evidence/secret-scan.md`); example error
+bodies and a per-type "what a client should do" table; one test per step of the check order.
+Changed (found by the assistant while writing the client table): a body over 16 KB fell through to
+`500 internal`, and the contract told clients to retry a 500 with the same key, a loop that never
+succeeds. Contract first (`7c66ebf`, new `413 body-too-large`), then tests only (`5a2658b`, red at
+`npm test`, run 45741962874), then code only (`2ef495c`, green, run 45742178095).
+Changed (by the assistant): to show the merge was blocked it ran `gh pr merge 6` once; GitHub refused
+it. That command is "ask first" in `AGENTS.md`; reading `mergeStateStatus` would have been enough.
+Rejected: TODO(team)
+By hand: TODO(team)
