@@ -278,6 +278,93 @@ describe('Idempotency', () => {
   });
 });
 
+describe('Check order — two faults at once, the earlier check wins', () => {
+  const BIG = `{"expectedVersion":3${' '.repeat(16_384)}}`;
+
+  it('413 before 415 and 401', async () => {
+    const res = await save('plan_weekend', BIG, { token: null, contentType: 'text/plain' });
+    expectProblem(res, 413, '/problems/body-too-large');
+  });
+
+  it('401 before 400 idempotency-key-required', async () => {
+    const res = await save('plan_weekend', undefined, { token: null, key: null });
+    expectProblem(res, 401, '/problems/unauthenticated');
+  });
+
+  it('400 idempotency-key-required before 400 invalid-request', async () => {
+    const res = await save('plan_weekend', {}, { key: null });
+    expectProblem(res, 400, '/problems/idempotency-key-required');
+  });
+
+  it('422 idempotency-key-reused before 400 invalid-request', async () => {
+    await save('plan_weekend');
+    expectProblem(await save('plan_weekend', {}), 422, '/problems/idempotency-key-reused');
+  });
+
+  it('400 invalid-request before 404 plan-not-found', async () => {
+    expectProblem(await save('plan_nope', {}), 400, '/problems/invalid-request');
+  });
+
+  it('404 before 409 for an outsider: a stale version does not reveal the plan', async () => {
+    const res = await save('plan_weekend', { expectedVersion: 2 }, { token: 'tok-zed' });
+    expectProblem(res, 404, '/problems/plan-not-found');
+  });
+
+  it('403 not-plan-owner before 409 version-conflict', async () => {
+    const res = await save('plan_weekend', { expectedVersion: 2 }, { token: 'tok-an' });
+    expectProblem(res, 403, '/problems/not-plan-owner');
+  });
+
+  it('409 version-conflict before 422 plan-invalid', async () => {
+    const res = await save('plan_over_cap', { expectedVersion: 2 });
+    expectProblem(res, 409, '/problems/version-conflict');
+  });
+});
+
+describe('Idempotency — byte-identical bodies', () => {
+  it('replays when the bytes are identical', async () => {
+    await save('plan_weekend', '{"expectedVersion":3}');
+    const again = await save('plan_weekend', '{"expectedVersion":3}');
+    expect(again.status).toBe(200);
+    expect(again.headers['idempotent-replayed']).toBe('true');
+  });
+
+  it.each([
+    ['added whitespace', '{"expectedVersion": 3}'],
+    ['a trailing newline', '{"expectedVersion":3}\n'],
+  ])('422 idempotency-key-reused for the same JSON with %s', async (_label, body) => {
+    await save('plan_weekend', '{"expectedVersion":3}');
+    expectProblem(await save('plan_weekend', body), 422, '/problems/idempotency-key-reused');
+    expect(h.shared).toHaveLength(1);
+  });
+});
+
+describe('413 body-too-large', () => {
+  const sized = (bytes: number) =>
+    `{"expectedVersion":3${' '.repeat(bytes - '{"expectedVersion":3}'.length)}}`;
+
+  it('refuses a body one byte over 16 KB, with limitBytes, and shares nothing', async () => {
+    const res = await save('plan_weekend', sized(16_385));
+    expectProblem(res, 413, '/problems/body-too-large');
+    expect(res.body.limitBytes).toBe(16_384);
+    expect(h.store.getPlan('plan_weekend')?.status).toBe('draft');
+    expect(h.shared).toEqual([]);
+  });
+
+  it('accepts a body of exactly 16 KB', async () => {
+    const res = await save('plan_weekend', sized(16_384));
+    expect(res.status).toBe(200);
+  });
+
+  it('does not store the 413: the same key works with a normal body', async () => {
+    await save('plan_weekend', sized(16_385));
+    const res = await save('plan_weekend');
+    expect(res.status).toBe(200);
+    expect(res.headers['idempotent-replayed']).toBeUndefined();
+    expect(res.body.sharedNow).toBe(true);
+  });
+});
+
 describe('500 internal — unexpected failure', () => {
   it('returns problem details and shares nothing', async () => {
     const shared: unknown[] = [];
