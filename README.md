@@ -36,8 +36,8 @@ npm run dev            # http://localhost:3000/health
 
 - Provider: Groq (`GROQ_API_KEY`, `GROQ_MODEL` in `.env`). The key is read by the backend only and
   never reaches the browser.
-- Spending cap: Only use Free tier API_KEY
-  (e.g. "free tier, no payment method on the account, so spend is capped at $0"). Do not write this line before it is true.
+- Spending cap: Groq free tier, no billing set up on the account, so spend is capped at $0.
+  Requests past the free rate limits are refused, not billed.
 - Cost of one plan: measured in PA#3.
 
 ## Repository
