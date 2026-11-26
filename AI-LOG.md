@@ -46,4 +46,13 @@ Changed (by the assistant): `required_approving_review_count` is 0, not 1. With 
 a solo owner can never merge their own PR. `enforce_admins` is on, so the owner cannot bypass the
 check either (`docs/evidence/pr1-merge-refused.txt`).
 Rejected: None at this time. Will reject any changes that violate the rules, such as disabling a check or force-pushing to `main`.
-By hand: Add the screenshot of the branch protection to `docs/evidence/branch-protection.json` (done)
+By hand: added the branch-protection screenshot `docs/evidence/branch-protection.png` (done).
+
+## 2026-11-24 — PA#2 report edit caught by the gate
+
+Tool: the CI job `checks` caught it.
+What went wrong: commit 4e3e692 (AI-LOG, README, self-assessment) left the Markdown
+tables unformatted. On PR #3, run 45322225150 went red at `npm run format:check` (lint passed;
+typecheck and test were skipped), so the PR could not merge.
+Fix (8715b5a): reformatted the tables so Prettier passes; run 45322367867 went green and PR #3
+merged. The gate checks our own docs, not only the assistant's code.
