@@ -67,5 +67,5 @@ succeeds. Contract first (`7c66ebf`, new `413 body-too-large`), then tests only 
 `npm test`, run 45741962874), then code only (`2ef495c`, green, run 45742178095).
 Changed (by the assistant): to show the merge was blocked it ran `gh pr merge 6` once; GitHub refused
 it. That command is "ask first" in `AGENTS.md`; reading `mergeStateStatus` would have been enough.
-Rejected: TODO(team)
-By hand: TODO(team)
+Rejected: None
+By hand: None
